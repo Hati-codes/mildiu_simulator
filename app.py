@@ -49,7 +49,7 @@ def interpretar_riesgo(row):
 API_KEY = "5974c1978f29424299346fd76e0378bd"
 geocoder = OpenCageGeocode(API_KEY)
 
-address = st.text_input("📍 Introduce la dirección o localidad del viñedo:")
+address = st.sidebar.text_input("📍 Introduce la dirección o localidad del viñedo:")
 
 lat, lon = None, None
 
@@ -70,8 +70,8 @@ if address:
             folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
             st_folium(m, width=700, height=250)
 
-            dias = st.slider("📆 Días atrás a considerar", 1, 14, 7)
-            prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
+dias = st.sidebar.slider("📆 Días atrás a considerar", 1, 14, 7)
+prediccion = st.sidebar.checkbox("📈 Incluir predicción para los próximos 3 días")
 
 # ---------------------- SIMULACIÓN ---------------------- #
 
@@ -126,6 +126,24 @@ if lat and lon:
 
             st.markdown("### 📊 Resultados del análisis")
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
+
+            # 📈 Gráfico de evolución del riesgo
+            df['riesgo_valor'] = df['riesgo_mildiu'].map({
+                'Riesgo BAJO': 0,
+                'Riesgo MEDIO': 1,
+                'Riesgo ALTO': 2
+            })
+            st.line_chart(df.set_index('fecha')['riesgo_valor'])
+
+            # 🔁 Tendencia general del riesgo
+            if len(df) >= 3:
+                tendencia = df['riesgo_valor'].iloc[-1] - df['riesgo_valor'].iloc[0]
+                if tendencia > 0:
+                    st.info('🔺 Riesgo en aumento en los últimos días.')
+                elif tendencia < 0:
+                    st.info('🔻 Riesgo en descenso en los últimos días.')
+                else:
+                    st.info('⏸️ Riesgo estable.')
                              'riesgo_mildiu', 'interpretacion']], use_container_width=True)
 
             if brotes:
