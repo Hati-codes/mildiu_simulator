@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import requests
@@ -66,11 +65,10 @@ if address:
         st.success(f"Ubicación: {full_address}")
         st.write(f"Lat: {lat:.4f}, Lon: {lon:.4f}")
 
-        m = folium.Map(location=[lat, lon], zoom_start=12)
-        folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
-with st.expander("🗺️ Ver mapa de ubicación", expanded=True):
-        st_folium(m, width=700, height=500)
-
+        with st.expander("🗺️ Ver ubicación en el mapa", expanded=True):
+            m = folium.Map(location=[lat, lon], zoom_start=12)
+            folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
+            st_folium(m, width=700, height=500)
     else:
         st.error("No se pudo encontrar la ubicación. Revisa la dirección.")
 
@@ -108,7 +106,7 @@ if lat and lon:
             df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
             df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
 
-            # --- Simulación avanzada de brote (versión mejorada) ---
+            # --- Simulación avanzada de brote ---
             df['fecha'] = pd.to_datetime(df['fecha'])
             fechas_alto = df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'].sort_values().reset_index(drop=True)
 
