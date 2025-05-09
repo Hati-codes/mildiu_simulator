@@ -1,8 +1,8 @@
-numpy==1.24.4
-pandas==1.5.3
+streamlit>=1.25.0
+numpy>=1.25
+pandas>=1.5
 requests
 geopy
 folium
 streamlit-folium
 meteostat==1.6.5
-streamlit==1.25.0
