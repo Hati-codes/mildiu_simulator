@@ -84,10 +84,26 @@ if lat and lon:
                 else:
                     return "Riesgo BAJO"
 
-            df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
+            
+def interpretar_riesgo(row):
+    if row['riesgo_mildiu'] == "Riesgo ALTO":
+        if row['precipitacion_mm'] >= 15 and row['humedad_relativa'] >= 95:
+            return "🌧️ Lluvias intensas y humedad extrema: condiciones críticas para brote."
+        else:
+            return "🌦️ Se cumplen los criterios clave para infección primaria de mildiu."
+    elif row['riesgo_mildiu'] == "Riesgo MEDIO":
+        if row['precipitacion_mm'] >= 5:
+            return "💧 Humedad y temperatura favorables, pero lluvia no alcanza umbral alto."
+        else:
+            return "🌤️ Temperatura adecuada, pero condiciones aún no son óptimas para brote."
+    else:
+        return "🌞 Condiciones secas o frías: riesgo muy bajo de infección."
+
+    df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
+    df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
 
             st.subheader("📊 Resultados del análisis")
-            st.dataframe(df)
+            st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa', 'riesgo_mildiu', 'interpretacion']])
 
             dias_alerta = df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'].tolist()
             if dias_alerta:
