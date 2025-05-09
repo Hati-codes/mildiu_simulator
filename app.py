@@ -1,126 +1,91 @@
+
 import streamlit as st
 import pandas as pd
 import requests
-from datetime import date, timedelta
+from datetime import datetime, timedelta
+from meteostat import Point, Daily
+from geopy.geocoders import Nominatim
+import folium
+from streamlit_folium import st_folium
 
-st.set_page_config(page_title="Simulador de Mildiu", layout="centered")
-st.title("Simulador de Riesgo de Mildiu en Viñedo")
+st.set_page_config(page_title="Simulador de Mildiu Avanzado", layout="centered")
+st.title("🌿 Simulador de Riesgo de Mildiu con Búsqueda Inteligente")
 
-st.markdown("""
-Este simulador detecta condiciones favorables para infecciones primarias de Mildiu basadas en la **Regla del 10-10-24**:
-- Temperatura media ≥ 10 °C
-- Precipitaciones ≥ 10 mm
-- Humedad relativa ≥ 90%
+# --- BÚSQUEDA AVANZADA DE UBICACIÓN USANDO PHOTON ---
+st.header("📍 Buscar ubicación")
+query = st.text_input("Introduce una dirección o localidad:")
 
-Ahora puedes obtener datos directamente desde Open-Meteo introduciendo la latitud y longitud de tu viñedo.
-""")
+lat, lon = None, None
 
-opcion = st.radio("Selecciona la fuente de datos:", ["Subir CSV", "Usar Open-Meteo"], horizontal=True)
+if query:
+    photon_url = f"https://photon.komoot.io/api/?q={query}&limit=5"
+    r = requests.get(photon_url)
+    resultados = r.json().get("features", [])
 
-if opcion == "Usar Open-Meteo":
-    lat = st.number_input("Latitud del viñedo", value=41.97, format="%f")
-    lon = st.number_input("Longitud del viñedo", value=3.13, format="%f")
-    dias = st.slider("Días atrás para analizar", 1, 14, 7)
-    prediccion = st.checkbox("Incluir predicción para los próximos 3 días")
+    opciones = [f"{f['properties']['name']}, {f['properties'].get('country', '')}" for f in resultados]
+    seleccion = st.selectbox("Selecciona una ubicación:", opciones) if opciones else None
 
-    if st.button("Obtener datos y analizar"):
-        fecha_hoy = date.today()
-        fecha_inicio = fecha_hoy - timedelta(days=dias)
-        fecha_fin = fecha_hoy + timedelta(days=3) if prediccion else fecha_hoy
+    if seleccion:
+        idx = opciones.index(seleccion)
+        coords = resultados[idx]["geometry"]["coordinates"]
+        lon, lat = coords[0], coords[1]
 
-        url = (
-            f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
-            f"&start_date={fecha_inicio}&end_date={fecha_fin}"
-            f"&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_max"
-            f"&timezone=Europe/Madrid"
+        st.success(f"Ubicación seleccionada: {seleccion}")
+        st.write(f"Latitud: {lat:.4f}, Longitud: {lon:.4f}")
+
+        m = folium.Map(location=[lat, lon], zoom_start=12)
+        folium.Marker([lat, lon], tooltip="Ubicación seleccionada").add_to(m)
+        st_folium(m, width=700, height=500)
+
+# --- PARÁMETROS Y ANÁLISIS CON METEOSTAT ---
+if lat and lon:
+    st.header("📈 Análisis meteorológico con Meteostat")
+
+    dias = st.slider("¿Cuántos días atrás deseas analizar?", 1, 30, 10)
+
+    end = datetime.today()
+    start = end - timedelta(days=dias)
+
+    location = Point(lat, lon)
+    data = Daily(location, start, end)
+    data = data.fetch()
+
+    if not data.empty:
+        df = data.reset_index()
+        df["fecha"] = df["time"].dt.date
+        df["temperatura_media"] = (df["tmax"] + df["tmin"]) / 2
+        df.rename(columns={"prcp": "precipitacion_mm", "rhum": "humedad_relativa"}, inplace=True)
+
+        # --- RIESGO DE MILDIU ---
+        def evaluar_riesgo(row):
+            if (row["temperatura_media"] >= 10 and
+                row["precipitacion_mm"] >= 10 and
+                row.get("humedad_relativa", 90) >= 90):
+                return "Riesgo ALTO"
+            elif (row["temperatura_media"] >= 10 and row["precipitacion_mm"] >= 5):
+                return "Riesgo MEDIO"
+            else:
+                return "Riesgo BAJO"
+
+        df["riesgo_mildiu"] = df.apply(evaluar_riesgo, axis=1)
+
+        st.subheader("📊 Resultados del análisis")
+        st.dataframe(df[["fecha", "temperatura_media", "precipitacion_mm", "riesgo_mildiu"]])
+
+        dias_alerta = df[df["riesgo_mildiu"] == "Riesgo ALTO"]["fecha"].tolist()
+        if dias_alerta:
+            st.warning("⚠️ Riesgo ALTO de Mildiu detectado en: " + ", ".join([str(d) for d in dias_alerta]))
+        else:
+            st.success("No se detectaron días con riesgo alto de Mildiu.")
+
+        st.download_button(
+            label="📥 Descargar CSV",
+            data=df.to_csv(index=False).encode("utf-8"),
+            file_name="riesgo_mildiu_meteostat.csv",
+            mime="text/csv"
         )
-
-        r = requests.get(url)
-        if r.status_code != 200:
-            st.error("No se pudieron obtener los datos meteorológicos.")
-        else:
-            data = r.json()['daily']
-            df = pd.DataFrame({
-                'fecha': data['time'],
-                'temperatura_media': [(max_ + min_) / 2 for max_, min_ in zip(data['temperature_2m_max'], data['temperature_2m_min'])],
-                'precipitacion_mm': data['precipitation_sum'],
-                'humedad_relativa': data['relative_humidity_2m_max']
-            })
-
-            def evaluar_riesgo(row):
-                if (row['temperatura_media'] >= 10 and
-                    row['precipitacion_mm'] >= 10 and
-                    row['humedad_relativa'] >= 90):
-                    return "Riesgo ALTO"
-                elif (row['temperatura_media'] >= 10 and row['precipitacion_mm'] >= 5):
-                    return "Riesgo MEDIO"
-                else:
-                    return "Riesgo BAJO"
-
-            df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
-
-            st.subheader("Resultados del análisis")
-            st.dataframe(df)
-
-            dias_alerta = df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'].tolist()
-            if dias_alerta:
-                st.warning(f"⚠️ Riesgo ALTO de Mildiu detectado en las siguientes fechas: {', '.join(dias_alerta)}")
-            else:
-                st.success("No se detectaron días con riesgo alto de Mildiu.")
-
-            st.download_button(
-                label="Descargar resultados en CSV",
-                data=df.to_csv(index=False).encode('utf-8'),
-                file_name='riesgo_mildiu.csv',
-                mime='text/csv'
-            )
-
-elif opcion == "Subir CSV":
-    uploaded_file = st.file_uploader("Sube un archivo CSV con los datos meteorológicos", type="csv")
-
-    if uploaded_file:
-        df = pd.read_csv(uploaded_file)
-        st.write("Vista previa de los datos:")
-        st.dataframe(df.head())
-
-        required_columns = {'fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa'}
-
-        if not required_columns.issubset(df.columns):
-            st.error(f"El CSV debe contener las columnas: {', '.join(required_columns)}")
-        else:
-            def evaluar_riesgo(row):
-                if (row['temperatura_media'] >= 10 and
-                    row['precipitacion_mm'] >= 10 and
-                    row['humedad_relativa'] >= 90):
-                    return "Riesgo ALTO"
-                elif (row['temperatura_media'] >= 10 and row['precipitacion_mm'] >= 5):
-                    return "Riesgo MEDIO"
-                else:
-                    return "Riesgo BAJO"
-
-            df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
-
-            st.subheader("Resultados del análisis")
-            st.dataframe(df[['fecha', 'riesgo_mildiu']])
-
-            dias_alerta = df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'].tolist()
-            if dias_alerta:
-                st.warning(f"⚠️ Riesgo ALTO de Mildiu detectado en las siguientes fechas: {', '.join(dias_alerta)}")
-            else:
-                st.success("No se detectaron días con riesgo alto de Mildiu.")
-
-            st.download_button(
-                label="Descargar resultados en CSV",
-                data=df.to_csv(index=False).encode('utf-8'),
-                file_name='riesgo_mildiu.csv',
-                mime='text/csv'
-            )
     else:
-        st.info("Esperando un archivo CSV con datos meteorológicos. Ejemplo:")
-        ejemplo = pd.DataFrame({
-            'fecha': ['2025-05-01', '2025-05-02'],
-            'temperatura_media': [11.2, 9.5],
-            'precipitacion_mm': [12.0, 3.0],
-            'humedad_relativa': [92, 85]
-        })
-        st.dataframe(ejemplo)
+        st.error("No se encontraron datos meteorológicos para esta ubicación.")
+
+else:
+    st.info("Introduce una dirección y selecciona una ubicación para comenzar.")
