@@ -65,20 +65,17 @@ if address:
         st.success(f"Ubicación: {full_address}")
         st.write(f"Lat: {lat:.4f}, Lon: {lon:.4f}")
 
-        m = folium.Map(location=[lat, lon], zoom_start=12)
-        folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
         with st.container():
+            m = folium.Map(location=[lat, lon], zoom_start=12)
+            folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
             st_folium(m, width=700, height=250)
-            else:
-            st.error("No se pudo encontrar la ubicación. Revisa la dirección.")
-            
-            # ---------------------- SIMULACIÓN ---------------------- #
-            
-            if lat and lon:
+
             dias = st.slider("📆 Días atrás a considerar", 1, 14, 7)
             prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
-            
 
+# ---------------------- SIMULACIÓN ---------------------- #
+
+if lat and lon:
     st.markdown("## 🔬 Análisis meteorológico y riesgo de mildiu")
     if st.button("🔍 Analizar riesgo"):
         fecha_hoy = date.today()
@@ -128,7 +125,8 @@ if address:
                 brotes.append((grupo[0], grupo[-1]))
 
             st.markdown("### 📊 Resultados del análisis")
-            st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa', 'riesgo_mildiu', 'interpretacion']], use_container_width=True)
+            st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
+                             'riesgo_mildiu', 'interpretacion']], use_container_width=True)
 
             if brotes:
                 st.markdown("### 🧠 Detección de brote potencial")
