@@ -67,18 +67,19 @@ if address:
 
         m = folium.Map(location=[lat, lon], zoom_start=12)
         folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
-        st_folium(m, width=700, height=250)
+        with st.container():
+            st_folium(m, width=700, height=250)
     else:
         st.error("No se pudo encontrar la ubicación. Revisa la dirección.")
 
 # ---------------------- SIMULACIÓN ---------------------- #
 
 if lat and lon:
-    dias = st.slider("📆 Días atrás a considerar", 1, 14, 7)
-    prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
+            dias = st.slider("📆 Días atrás a considerar", 1, 14, 7)
+            prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
 
-    st.markdown("## 🔬 Análisis meteorológico y riesgo de mildiu")
-    if st.button("🔍 Analizar riesgo"):
+            st.markdown("## 🔬 Análisis meteorológico y riesgo de mildiu")
+            if st.button("🔍 Analizar riesgo"):
         fecha_hoy = date.today()
         fecha_inicio = fecha_hoy - timedelta(days=dias)
         fecha_fin = fecha_hoy + timedelta(days=3) if prediccion else fecha_hoy
