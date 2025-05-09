@@ -1,6 +1,6 @@
-streamlit>=1.0
-pandas
-numpy
+streamlit>=1.10
+pandas>=1.0
+numpy>=1.18
 requests
 geopy
 folium
