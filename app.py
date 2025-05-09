@@ -7,6 +7,8 @@ from opencage.geocoder import OpenCageGeocode
 import folium
 from streamlit_folium import st_folium
 
+# ---------------------- CONFIGURACIÓN INICIAL ---------------------- #
+
 st.set_page_config(page_title="Simulador de Mildiu", layout="centered")
 st.title("🌿 Simulador de Riesgo de Mildiu en Viñedos")
 
@@ -19,7 +21,34 @@ Este simulador detecta condiciones favorables para infecciones primarias de Mild
 Usa datos meteorológicos reales desde **Open-Meteo** y búsqueda con **OpenCage Geocoder**.
 """)
 
-# --- Entrada de dirección y geolocalización con OpenCage
+# ---------------------- FUNCIONES ---------------------- #
+
+def evaluar_riesgo(row):
+    if (row['temperatura_media'] >= 10 and
+        row['precipitacion_mm'] >= 10 and
+        row['humedad_relativa'] >= 90):
+        return "Riesgo ALTO"
+    elif (row['temperatura_media'] >= 10 and row['precipitacion_mm'] >= 5):
+        return "Riesgo MEDIO"
+    else:
+        return "Riesgo BAJO"
+
+def interpretar_riesgo(row):
+    if row['riesgo_mildiu'] == "Riesgo ALTO":
+        if row['precipitacion_mm'] >= 15 and row['humedad_relativa'] >= 95:
+            return "🌧️ Lluvias intensas y humedad extrema: condiciones críticas para brote."
+        else:
+            return "🌦️ Se cumplen los criterios clave para infección primaria de mildiu."
+    elif row['riesgo_mildiu'] == "Riesgo MEDIO":
+        if row['precipitacion_mm'] >= 5:
+            return "💧 Humedad y temperatura favorables, pero lluvia no alcanza umbral alto."
+        else:
+            return "🌤️ Temperatura adecuada, pero condiciones aún no son óptimas para brote."
+    else:
+        return "🌞 Condiciones secas o frías: riesgo muy bajo de infección."
+
+# ---------------------- LOCALIZACIÓN ---------------------- #
+
 API_KEY = "5974c1978f29424299346fd76e0378bd"
 geocoder = OpenCageGeocode(API_KEY)
 
@@ -45,7 +74,8 @@ if address:
     else:
         st.error("No se pudo encontrar la ubicación. Revisa la dirección.")
 
-# --- Simulación si hay coordenadas
+# ---------------------- SIMULACIÓN ---------------------- #
+
 if lat and lon:
     dias = st.slider("Días atrás para analizar", 1, 14, 7)
     prediccion = st.checkbox("Incluir predicción para los próximos 3 días")
@@ -74,35 +104,8 @@ if lat and lon:
                 'humedad_relativa': data['relative_humidity_2m_max']
             })
 
-            def evaluar_riesgo(row):
-                if (row['temperatura_media'] >= 10 and
-                    row['precipitacion_mm'] >= 10 and
-                    row['humedad_relativa'] >= 90):
-                    return "Riesgo ALTO"
-                elif (row['temperatura_media'] >= 10 and row['precipitacion_mm'] >= 5):
-                    return "Riesgo MEDIO"
-                else:
-                    return "Riesgo BAJO"
-
-            
-
-def interpretar_riesgo(row):
-    if row['riesgo_mildiu'] == "Riesgo ALTO":
-        if row['precipitacion_mm'] >= 15 and row['humedad_relativa'] >= 95:
-            return "🌧️ Lluvias intensas y humedad extrema: condiciones críticas para brote."
-        else:
-            return "🌦️ Se cumplen los criterios clave para infección primaria de mildiu."
-    elif row['riesgo_mildiu'] == "Riesgo MEDIO":
-        if row['precipitacion_mm'] >= 5:
-            return "💧 Humedad y temperatura favorables, pero lluvia no alcanza umbral alto."
-        else:
-            return "🌤️ Temperatura adecuada, pero condiciones aún no son óptimas para brote."
-    else:
-        return "🌞 Condiciones secas o frías: riesgo muy bajo de infección."
-
             df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
             df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
-    df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
 
             st.subheader("📊 Resultados del análisis")
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa', 'riesgo_mildiu', 'interpretacion']])
