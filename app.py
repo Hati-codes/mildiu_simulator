@@ -65,10 +65,9 @@ if address:
         st.success(f"Ubicación: {full_address}")
         st.write(f"Lat: {lat:.4f}, Lon: {lon:.4f}")
 
-        st.markdown("### 🗺️ Ubicación del viñedo")
         m = folium.Map(location=[lat, lon], zoom_start=12)
         folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
-        st_folium(m, width=700, height=300)
+        st_folium(m, width=700, height=250)
     else:
         st.error("No se pudo encontrar la ubicación. Revisa la dirección.")
 
@@ -127,7 +126,7 @@ if lat and lon:
                 brotes.append((grupo[0], grupo[-1]))
 
             st.markdown("### 📊 Resultados del análisis")
-            st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa', 'riesgo_mildiu', 'interpretacion']])
+            st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa', 'riesgo_mildiu', 'interpretacion']], use_container_width=True)
 
             if brotes:
                 st.markdown("### 🧠 Detección de brote potencial")
