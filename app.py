@@ -104,7 +104,7 @@ if lat and lon:
             df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
             df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
 
-            # --- Simulación avanzada de brote ---
+            # Simulación avanzada de brote
             df['fecha'] = pd.to_datetime(df['fecha'])
             fechas_alto = df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'].sort_values().reset_index(drop=True)
 
@@ -126,6 +126,7 @@ if lat and lon:
 
             st.markdown("### 📊 Resultados del análisis")
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
+                             'riesgo_mildiu', 'interpretacion']], use_container_width=True)
 
             # 📈 Gráfico de evolución del riesgo
             df['riesgo_valor'] = df['riesgo_mildiu'].map({
@@ -135,16 +136,15 @@ if lat and lon:
             })
             st.line_chart(df.set_index('fecha')['riesgo_valor'])
 
-            # 🔁 Tendencia general del riesgo
+            # 🔁 Tendencia
             if len(df) >= 3:
                 tendencia = df['riesgo_valor'].iloc[-1] - df['riesgo_valor'].iloc[0]
                 if tendencia > 0:
-                    st.info('🔺 Riesgo en aumento en los últimos días.')
+                    st.info("🔺 Riesgo en aumento en los últimos días.")
                 elif tendencia < 0:
-                    st.info('🔻 Riesgo en descenso en los últimos días.')
+                    st.info("🔻 Riesgo en descenso en los últimos días.")
                 else:
-                    st.info('⏸️ Riesgo estable.')
-                             'riesgo_mildiu', 'interpretacion']], use_container_width=True)
+                    st.info("⏸️ Riesgo estable.")
 
             if brotes:
                 st.markdown("### 🧠 Detección de brote potencial")
