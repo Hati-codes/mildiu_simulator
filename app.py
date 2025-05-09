@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import requests
@@ -5,8 +6,6 @@ from datetime import date, timedelta
 from opencage.geocoder import OpenCageGeocode
 import folium
 from streamlit_folium import st_folium
-
-# ---------------------- CONFIGURACIÓN INICIAL ---------------------- #
 
 st.set_page_config(page_title="Simulador de Mildiu", layout="centered")
 st.markdown("<h1 style='text-align:center;'>🌿 Simulador de Riesgo de Mildiu</h1>", unsafe_allow_html=True)
@@ -65,10 +64,10 @@ if address:
         st.success(f"Ubicación: {full_address}")
         st.write(f"Lat: {lat:.4f}, Lon: {lon:.4f}")
 
-        with st.expander("🗺️ Ver ubicación en el mapa", expanded=True):
             m = folium.Map(location=[lat, lon], zoom_start=12)
             folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
-            st_folium(m, width=700, height=500)
+            st.markdown("### 🗺️ Ubicación del viñedo")
+            st_folium(m, width=700, height=300)
     else:
         st.error("No se pudo encontrar la ubicación. Revisa la dirección.")
 
