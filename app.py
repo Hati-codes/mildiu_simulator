@@ -100,7 +100,8 @@ def interpretar_riesgo(row):
     else:
         return "🌞 Condiciones secas o frías: riesgo muy bajo de infección."
 
-df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
+            df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
+            df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
     df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
 
             st.subheader("📊 Resultados del análisis")
