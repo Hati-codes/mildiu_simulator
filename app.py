@@ -129,6 +129,24 @@ if lat and lon:
                              'riesgo_mildiu', 'interpretacion']], use_container_width=True)
 
             if brotes:
+            # 💉 Lógica de recomendación de tratamiento fitosanitario
+            dias_tratamiento = []
+            ultimo_tratamiento = None
+            for i, row in df.iterrows():
+                fecha_actual = pd.to_datetime(row['fecha'])
+                if row['riesgo_mildiu'] == 'Riesgo ALTO':
+                    if (ultimo_tratamiento is None or (fecha_actual - ultimo_tratamiento).days >= 10):
+                        dias_tratamiento.append((fecha_actual, 'Alta presión de infección'))
+                        ultimo_tratamiento = fecha_actual
+                elif row['precipitacion_mm'] >= 20:
+                    if ultimo_tratamiento and (fecha_actual - ultimo_tratamiento).days >= 1:
+                        dias_tratamiento.append((fecha_actual, 'Lluvia intensa tras tratamiento'))
+                        ultimo_tratamiento = fecha_actual
+
+            if dias_tratamiento:
+                st.markdown('### 💉 Recomendación de tratamiento fitosanitario')
+                for fecha, motivo in dias_tratamiento:
+                    st.warning(f'Se recomienda aplicar caldo bordelés el {fecha.strftime("%d/%m")} ({motivo})')
                 st.markdown("### 🧠 Detección de brote potencial")
                 for inicio, fin in brotes:
                     st.error(f"🚨 Potencial brote entre {inicio.strftime('%d/%m')} y {fin.strftime('%d/%m')}")
