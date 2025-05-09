@@ -64,7 +64,10 @@ if address:
         st.success(f"Ubicación: {full_address}")
         st.write(f"Lat: {lat:.4f}, Lon: {lon:.4f}")
 
-            m = folium.Map(location=[lat, lon], zoom_start=12)
+        st.markdown("### 🗺️ Ubicación del viñedo")
+        m = folium.Map(location=[lat, lon], zoom_start=12)
+        folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
+        st_folium(m, width=700, height=300)
             folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
             st.markdown("### 🗺️ Ubicación del viñedo")
             st_folium(m, width=700, height=300)
