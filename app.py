@@ -69,9 +69,9 @@ if address:
             m = folium.Map(location=[lat, lon], zoom_start=12)
             folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
             st_folium(m, width=700, height=250)
+            dias = st.slider("📆 Días atrás a considerar", 1, 14, 7)
+            prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
 
-        dias = st.slider("📆 Días atrás a considerar", 1, 14, 7)
-        prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
 
 # ---------------------- SIMULACIÓN ---------------------- #
 
