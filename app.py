@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import date, timedelta
-from geopy.geocoders import Nominatim
+from opencage.geocoder import OpenCageGeocode
 import folium
 from streamlit_folium import st_folium
 
@@ -16,26 +16,34 @@ Este simulador detecta condiciones favorables para infecciones primarias de Mild
 - Precipitaciones ≥ 10 mm
 - Humedad relativa ≥ 90%
 
-Usa datos meteorológicos reales desde **Open-Meteo**.
+Usa datos meteorológicos reales desde **Open-Meteo** y búsqueda con **OpenCage Geocoder**.
 """)
 
-# --- Entrada de dirección y geolocalización
+# --- Entrada de dirección y geolocalización con OpenCage
+API_KEY = "5974c1978f29424299346fd76e0378bd"
+geocoder = OpenCageGeocode(API_KEY)
+
 address = st.text_input("Introduce una dirección o ciudad para localizar tu viñedo:")
 
 lat, lon = None, None
 
 if address:
-    geolocator = Nominatim(user_agent="mildiu_simulator")
-    location = geolocator.geocode(address)
+    results = geocoder.geocode(address)
 
-    if location:
-        lat, lon = location.latitude, location.longitude
-        st.success(f"Ubicación: {location.address}")
+    if results and len(results):
+        result = results[0]
+        lat = result["geometry"]["lat"]
+        lon = result["geometry"]["lng"]
+        full_address = result["formatted"]
+
+        st.success(f"Ubicación: {full_address}")
         st.write(f"Lat: {lat:.4f}, Lon: {lon:.4f}")
 
         m = folium.Map(location=[lat, lon], zoom_start=12)
         folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
         st_folium(m, width=700, height=500)
+    else:
+        st.error("No se pudo encontrar la ubicación. Revisa la dirección.")
 
 # --- Simulación si hay coordenadas
 if lat and lon:
