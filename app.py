@@ -129,7 +129,13 @@ if lat and lon:
                              'riesgo_mildiu', 'interpretacion']], use_container_width=True)
 
             if brotes:
-            # 💉 Lógica de recomendación de tratamiento fitosanitario
+                st.markdown("### 🧠 Detección de brote potencial")
+                for inicio, fin in brotes:
+                    st.error(f"🚨 Potencial brote entre {inicio.strftime('%d/%m')} y {fin.strftime('%d/%m')}")
+            else:
+                st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
+
+            # 💉 Recomendación de tratamiento
             dias_tratamiento = []
             ultimo_tratamiento = None
             for i, row in df.iterrows():
@@ -144,14 +150,9 @@ if lat and lon:
                         ultimo_tratamiento = fecha_actual
 
             if dias_tratamiento:
-                st.markdown('### 💉 Recomendación de tratamiento fitosanitario')
+                st.markdown("### 💉 Recomendación de tratamiento fitosanitario")
                 for fecha, motivo in dias_tratamiento:
-                    st.warning(f'Se recomienda aplicar caldo bordelés el {fecha.strftime("%d/%m")} ({motivo})')
-                st.markdown("### 🧠 Detección de brote potencial")
-                for inicio, fin in brotes:
-                    st.error(f"🚨 Potencial brote entre {inicio.strftime('%d/%m')} y {fin.strftime('%d/%m')}")
-            else:
-                st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
+                    st.warning(f"Se recomienda aplicar caldo bordelés el {fecha.strftime('%d/%m')} ({motivo})")
 
             st.download_button(
                 label="📥 Descargar resultados en CSV",
