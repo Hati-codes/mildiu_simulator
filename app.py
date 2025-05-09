@@ -84,8 +84,7 @@ if lat and lon:
                 else:
                     return "Riesgo BAJO"
 
-            
-def interpretar_riesgo(row):
+            def interpretar_riesgo(row):
     if row['riesgo_mildiu'] == "Riesgo ALTO":
         if row['precipitacion_mm'] >= 15 and row['humedad_relativa'] >= 95:
             return "🌧️ Lluvias intensas y humedad extrema: condiciones críticas para brote."
@@ -98,7 +97,6 @@ def interpretar_riesgo(row):
             return "🌤️ Temperatura adecuada, pero condiciones aún no son óptimas para brote."
     else:
         return "🌞 Condiciones secas o frías: riesgo muy bajo de infección."
-
     df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
     df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
 
