@@ -106,7 +106,7 @@ if lat and lon:
 
             df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
             df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
-\n\n            # --- Simulación avanzada de brote ---
+            # --- Simulación avanzada de brote ---
             fechas_alto = pd.to_datetime(df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'])
             fechas_alto = fechas_alto.sort_values().reset_index(drop=True)
 
