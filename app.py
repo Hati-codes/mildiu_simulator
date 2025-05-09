@@ -106,9 +106,10 @@ if lat and lon:
 
             df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
             df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
-            # --- Simulación avanzada de brote ---
-            fechas_alto = pd.to_datetime(df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'])
-            fechas_alto = fechas_alto.sort_values().reset_index(drop=True)
+\n\n            
+            # --- Simulación avanzada de brote (versión mejorada) ---
+            df['fecha'] = pd.to_datetime(df['fecha'])
+            fechas_alto = df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'].sort_values().reset_index(drop=True)
 
             brotes = []
             grupo = []
@@ -127,6 +128,12 @@ if lat and lon:
                 brotes.append((grupo[0], grupo[-1]))
 
             if brotes:
+                st.subheader("🧠 Simulación avanzada")
+                for inicio, fin in brotes:
+                    st.error(f"🚨 Potencial brote entre {inicio.strftime('%d/%m')} y {fin.strftime('%d/%m')}")
+            else:
+                st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
+rotes:
                 st.subheader("🧠 Simulación avanzada")
                 for inicio, fin in brotes:
                     st.error(f"🚨 Potencial brote entre {inicio.strftime('%d/%m')} y {fin.strftime('%d/%m')}")
