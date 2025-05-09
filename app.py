@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import requests
@@ -67,8 +68,9 @@ if address:
 
         m = folium.Map(location=[lat, lon], zoom_start=12)
         folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
+with st.expander("🗺️ Ver mapa de ubicación", expanded=True):
         st_folium(m, width=700, height=500)
-        st.divider()
+
     else:
         st.error("No se pudo encontrar la ubicación. Revisa la dirección.")
 
@@ -136,7 +138,6 @@ if lat and lon:
             else:
                 st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
 
-            st.divider()
             st.download_button(
                 label="📥 Descargar resultados en CSV",
                 data=df.to_csv(index=False).encode('utf-8'),
