@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import requests
@@ -10,15 +9,13 @@ from streamlit_folium import st_folium
 # ---------------------- CONFIGURACIÓN INICIAL ---------------------- #
 
 st.set_page_config(page_title="Simulador de Mildiu", layout="centered")
-st.markdown("<h1 style=\"text-align:center;\">🌿 Simulador de Riesgo de Mildiu</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center;'>🌿 Simulador de Riesgo de Mildiu</h1>", unsafe_allow_html=True)
 
 st.markdown("""
 Este simulador detecta condiciones favorables para infecciones primarias de Mildiu basadas en la **Regla del 10-10-24**:
 - Temperatura media ≥ 10 °C
 - Precipitaciones ≥ 10 mm
 - Humedad relativa ≥ 90%
-
-Usa datos meteorológicos reales desde **Open-Meteo** y búsqueda con **OpenCage Geocoder**.
 """)
 
 # ---------------------- FUNCIONES ---------------------- #
@@ -71,7 +68,7 @@ if address:
         m = folium.Map(location=[lat, lon], zoom_start=12)
         folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
         st_folium(m, width=700, height=500)
-st.divider()
+        st.divider()
     else:
         st.error("No se pudo encontrar la ubicación. Revisa la dirección.")
 
@@ -82,7 +79,7 @@ if lat and lon:
     prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
 
     st.markdown("## 🔬 Análisis meteorológico y riesgo de mildiu")
-if st.button("🔍 Analizar riesgo"):
+    if st.button("🔍 Analizar riesgo"):
         fecha_hoy = date.today()
         fecha_inicio = fecha_hoy - timedelta(days=dias)
         fecha_fin = fecha_hoy + timedelta(days=3) if prediccion else fecha_hoy
@@ -140,7 +137,7 @@ if st.button("🔍 Analizar riesgo"):
                 st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
 
             st.divider()
-st.download_button(
+            st.download_button(
                 label="📥 Descargar resultados en CSV",
                 data=df.to_csv(index=False).encode('utf-8'),
                 file_name='riesgo_mildiu.csv',
