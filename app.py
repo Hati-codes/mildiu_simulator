@@ -256,6 +256,7 @@ if lat and lon:
                         if st.button(f"✅ Tratado {fecha_str}"):
                             if fecha_str not in st.session_state.tratamientos_confirmados:
                                 st.session_state.tratamientos_confirmados.append(fecha_str)
+                                st.experimental_rerun()
 
             # 🔁 Ajustar riesgo tras tratamiento
             if st.session_state.tratamientos_confirmados:
