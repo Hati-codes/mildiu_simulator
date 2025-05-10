@@ -166,7 +166,8 @@ if lat and lon:
                 semana = df.iloc[i:i+7]
                 lluvias_fuertes = semana[semana['precipitacion_mm'] >= 10]
                 if len(lluvias_fuertes) >= 2:
-                    inicio, fin = semana.iloc[0]['fecha'], semana.iloc[-1]['fecha']
+                    inicio = pd.to_datetime(semana.iloc[0]['fecha']).to_pydatetime()
+                    fin = pd.to_datetime(semana.iloc[-1]['fecha']).to_pydatetime()
                     brotes_detectados.append((inicio, fin, "Doble lluvia intensa"))
 
             if brotes_detectados:
