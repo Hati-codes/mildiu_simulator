@@ -49,13 +49,12 @@ def interpretar_riesgo(row):
 API_KEY = "5974c1978f29424299346fd76e0378bd"
 geocoder = OpenCageGeocode(API_KEY)
 
-with st.form("ubicacion_formulario"):
-    address = st.text_input("📍 Introduce la dirección o localidad del viñedo:")
-    submitted = st.form_submit_button("🔍 Buscar ubicación")
+address = st.text_input("📍 Introduce la dirección o localidad del viñedo:")
+search = st.button("🔍 Buscar ubicación")
 
 lat, lon = None, None
 
-if submitted and address:
+if search and address:
     results = geocoder.geocode(address)
 
     if results and len(results):
