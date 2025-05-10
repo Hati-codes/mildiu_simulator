@@ -258,12 +258,14 @@ if st.session_state.get("analisis_realizado", False):
                         dias_tratamiento.append((dia_anterior, 'Prevención antes de brote o lluvia intensa'))
                         ultimo_tratamiento = dia_anterior
 
-            # 🟢 Marcar fechas sugeridas en la tabla
-            sugeridas = set([f[0].strftime('%Y-%m-%d') for f in dias_tratamiento])
+            # 🟢 Marcar en tabla los tratamientos sugeridos
+            if dias_tratamiento:
+                sugeridas = set([f[0].strftime('%Y-%m-%d') for f in dias_tratamiento])
+            else:
+                sugeridas = set()
             df['tratamiento_sugerido'] = df['fecha'].apply(
                 lambda x: '💧' if pd.to_datetime(x).strftime('%Y-%m-%d') in sugeridas else ''
             )
-
 
             if dias_tratamiento:
                 st.markdown("### 💉 Recomendación de tratamiento fitosanitario")
@@ -278,6 +280,34 @@ if st.session_state.get("analisis_realizado", False):
                                 st.session_state.tratamientos_confirmados.append(fecha_str)
                                 st.session_state["forzar_rerun"] = True
 
+            if "tratamientos_confirmados" not in st.session_state:
+                st.session_state.tratamientos_confirmados = []
+
+            dias_tratamiento = []
+            ultimo_tratamiento = None
+            for i, row in df.iterrows():
+                fecha_actual = pd.to_datetime(row['fecha'])
+                if row['riesgo_mildiu'] == 'Riesgo ALTO':
+                    if (ultimo_tratamiento is None or (fecha_actual - ultimo_tratamiento).days >= 10):
+                        dias_tratamiento.append((fecha_actual, 'Alta presión de infección'))
+                        ultimo_tratamiento = fecha_actual
+                elif row['precipitacion_mm'] >= 20:
+                    if ultimo_tratamiento and (fecha_actual - ultimo_tratamiento).days >= 1:
+                        dias_tratamiento.append((fecha_actual, 'Lluvia intensa tras tratamiento'))
+                        ultimo_tratamiento = fecha_actual
+
+            if dias_tratamiento:
+                st.markdown("### 💉 Recomendación de tratamiento fitosanitario")
+                for fecha, motivo in dias_tratamiento:
+                    fecha_str = fecha.strftime('%Y-%m-%d')
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.warning(f"Aplicar caldo bordelés el {fecha.strftime('%d/%m')} ({motivo})")
+                    with col2:
+                        if st.button(f"✅ Tratado {fecha_str}"):
+                            if fecha_str not in st.session_state.tratamientos_confirmados:
+                                st.session_state.tratamientos_confirmados.append(fecha_str)
+                                st.experimental_rerun()
 
             # 🔁 Ajustar riesgo tras tratamiento
             if st.session_state.tratamientos_confirmados:
