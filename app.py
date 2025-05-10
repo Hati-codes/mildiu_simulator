@@ -125,7 +125,7 @@ if st.session_state.get("analisis_realizado", False):
             # 📊 Resultados del análisis
             st.markdown("### 📊 Resultados del análisis")
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
-                             'riesgo_mildiu', 'interpretacion', 'tratamiento_aplicado']], use_container_width=True)
+                             'riesgo_mildiu', 'interpretacion', 'tratamiento_aplicado', 'tratamiento_sugerido']], use_container_width=True)
 
             # 🧠 Resumen inteligente del riesgo
             riesgo_counts = df['riesgo_mildiu'].value_counts()
@@ -214,7 +214,7 @@ if st.session_state.get("analisis_realizado", False):
 
             st.markdown("### 📊 Resultados del análisis")
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
-                             'riesgo_mildiu', 'interpretacion', 'tratamiento_aplicado']], use_container_width=True)
+                             'riesgo_mildiu', 'interpretacion', 'tratamiento_aplicado', 'tratamiento_sugerido']], use_container_width=True)
 
             df['riesgo_valor'] = df['riesgo_mildiu'].map({
                 'Riesgo BAJO': 0,
@@ -240,22 +240,30 @@ if st.session_state.get("analisis_realizado", False):
                 st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
 
             
-            # 💉 Recomendación de tratamiento fitosanitario (interactivo)
+            
+            # 💉 Recomendación de tratamiento fitosanitario (preventivo)
             if "tratamientos_confirmados" not in st.session_state:
                 st.session_state.tratamientos_confirmados = []
 
             dias_tratamiento = []
             ultimo_tratamiento = None
-            for i, row in df.iterrows():
-                fecha_actual = pd.to_datetime(row['fecha'])
-                if row['riesgo_mildiu'] == 'Riesgo ALTO':
-                    if (ultimo_tratamiento is None or (fecha_actual - ultimo_tratamiento).days >= 10):
-                        dias_tratamiento.append((fecha_actual, 'Alta presión de infección'))
-                        ultimo_tratamiento = fecha_actual
-                elif row['precipitacion_mm'] >= 20:
-                    if ultimo_tratamiento and (fecha_actual - ultimo_tratamiento).days >= 1:
-                        dias_tratamiento.append((fecha_actual, 'Lluvia intensa tras tratamiento'))
-                        ultimo_tratamiento = fecha_actual
+            for i in range(1, len(df)):
+                dia_anterior = pd.to_datetime(df.loc[i - 1, 'fecha'])
+                dia_actual = pd.to_datetime(df.loc[i, 'fecha'])
+                riesgo = df.loc[i, 'riesgo_mildiu']
+                lluvia = df.loc[i, 'precipitacion_mm']
+
+                if riesgo == 'Riesgo ALTO' or lluvia >= 10:
+                    if (ultimo_tratamiento is None) or ((dia_anterior - ultimo_tratamiento).days >= 10):
+                        dias_tratamiento.append((dia_anterior, 'Prevención antes de brote o lluvia intensa'))
+                        ultimo_tratamiento = dia_anterior
+
+            # 🟢 Marcar fechas sugeridas en la tabla
+            sugeridas = set([f[0].strftime('%Y-%m-%d') for f in dias_tratamiento])
+            df['tratamiento_sugerido'] = df['fecha'].apply(
+                lambda x: '💧' if pd.to_datetime(x).strftime('%Y-%m-%d') in sugeridas else ''
+            )
+
 
             if dias_tratamiento:
                 st.markdown("### 💉 Recomendación de tratamiento fitosanitario")
@@ -268,7 +276,8 @@ if st.session_state.get("analisis_realizado", False):
                         if st.button(f"✅ Tratado {fecha_str}"):
                             if fecha_str not in st.session_state.tratamientos_confirmados:
                                 st.session_state.tratamientos_confirmados.append(fecha_str)
-                                st.experimental_rerun()
+                                st.session_state["forzar_rerun"] = True
+
 
             # 🔁 Ajustar riesgo tras tratamiento
             if st.session_state.tratamientos_confirmados:
