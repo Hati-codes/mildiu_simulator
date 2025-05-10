@@ -125,6 +125,23 @@ if lat and lon:
                 brotes.append((grupo[0], grupo[-1]))
 
             st.markdown("### 📊 Resultados del análisis")
+
+            # 🧠 Resumen inteligente del riesgo
+            riesgo_counts = df['riesgo_mildiu'].value_counts()
+            total_dias = len(df)
+            resumen = []
+
+            if 'Riesgo ALTO' in riesgo_counts:
+                resumen.append(f"{riesgo_counts['Riesgo ALTO']} días con riesgo alto")
+            if 'Riesgo MEDIO' in riesgo_counts:
+                resumen.append(f"{riesgo_counts['Riesgo MEDIO']} días con riesgo medio")
+            if 'Riesgo BAJO' in riesgo_counts:
+                resumen.append(f"{riesgo_counts['Riesgo BAJO']} días con riesgo bajo")
+
+            resumen_texto = ", ".join(resumen)
+            st.markdown(f"### 🧾 Resumen del período analizado")
+            st.success(f"En los últimos {total_dias} días: {resumen_texto}.")
+
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
                              'riesgo_mildiu', 'interpretacion']], use_container_width=True)
 
