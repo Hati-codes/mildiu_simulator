@@ -355,20 +355,19 @@ No constituyen asesoramiento técnico oficial y pueden no reflejar con precisió
 Se recomienda contrastar con la observación en campo y consultar a técnicos agrícolas cuando sea necesario.")
 
 
-# 📌 Pie de página con logo cargado vía st.image y texto con enlace
-st.markdown("---")
-st.image(
-    "https://raw.githubusercontent.com/Hati-codes/mildiu_simulator/main/logo_rodamon.png",
-    width=150,
-    caption="Rodamón Wines"
-)
+# 📌 Pie de página con logo centrado y enlace debajo
+st.markdown("---", unsafe_allow_html=True)
 st.markdown(
     """
-    <p style='text-align: center;'>
-        <a href='https://www.instagram.com/rodamon.wines/' target='_blank' style='text-decoration: none; color: #8B0000; font-weight: bold;'>
-            Visita Rodamón Wines en Instagram
-        </a>
-    </p>
+    <div style='text-align: center;'>
+        <img src='https://raw.githubusercontent.com/Hati-codes/mildiu_simulator/main/logo_rodamon.png' width='150'/>
+        <p style='margin-top: 0.5em;'>
+            <a href='https://www.instagram.com/rodamon.wines/' target='_blank'
+               style='text-decoration: none; color: #8B0000; font-weight: bold; font-size: 15px;'>
+                Visita Rodamón Wines en Instagram
+            </a>
+        </p>
+    </div>
     """,
     unsafe_allow_html=True
 )
