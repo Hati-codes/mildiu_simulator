@@ -124,6 +124,11 @@ if st.session_state.get("analisis_realizado", False):
 
             # 📊 Resultados del análisis
             st.markdown("### 📊 Resultados del análisis")
+            # ✅ Aseguramos que existan las columnas necesarias antes de mostrar la tabla
+            if 'tratamiento_aplicado' not in df.columns:
+                df['tratamiento_aplicado'] = ''
+            if 'tratamiento_sugerido' not in df.columns:
+                df['tratamiento_sugerido'] = ''
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
                              'riesgo_mildiu', 'interpretacion', 'tratamiento_aplicado', 'tratamiento_sugerido']], use_container_width=True)
 
@@ -213,6 +218,11 @@ if st.session_state.get("analisis_realizado", False):
                 brotes.append((grupo[0], grupo[-1]))
 
             st.markdown("### 📊 Resultados del análisis")
+            # ✅ Aseguramos que existan las columnas necesarias antes de mostrar la tabla
+            if 'tratamiento_aplicado' not in df.columns:
+                df['tratamiento_aplicado'] = ''
+            if 'tratamiento_sugerido' not in df.columns:
+                df['tratamiento_sugerido'] = ''
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
                              'riesgo_mildiu', 'interpretacion', 'tratamiento_aplicado', 'tratamiento_sugerido']], use_container_width=True)
 
