@@ -346,3 +346,34 @@ if st.session_state.get("analisis_realizado", False):
             )
 else:
     st.info("Introduce una ubicación válida y pulsa el botón para continuar.")
+
+# 🛑 Disclaimer
+st.markdown("---")
+st.info("ℹ️ **Este simulador ha sido desarrollado por Rodamón Wines.**\n\
+Los resultados presentados son estimaciones basadas en datos meteorológicos aproximados y reglas empíricas.\n\
+No constituyen asesoramiento técnico oficial y pueden no reflejar con precisión la evolución real del mildiu.\n\
+Se recomienda contrastar con la observación en campo y consultar a técnicos agrícolas cuando sea necesario.")
+
+
+# 📌 Pie de página con logo y enlace
+import base64
+from pathlib import Path
+
+logo_path = Path("/mnt/data/LOGO ROJO POSITIVO.png")
+if logo_path.exists():
+    with open(logo_path, "rb") as f:
+        data = f.read()
+        encoded = base64.b64encode(data).decode()
+        st.markdown(
+            """
+            <div style='text-align: center; margin-top: 2em;'>
+                <img src='data:image/png;base64,""" + encoded + """' width='200'/>
+                <p style='margin-top: 0.5em;'>
+                    <a href='https://www.instagram.com/rodamon.wines/' target='_blank' style='text-decoration: none; color: #8B0000; font-weight: bold;'>
+                        Visita Rodamón Wines en Instagram
+                    </a>
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
