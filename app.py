@@ -147,7 +147,7 @@ if lat and lon:
             brotes_detectados = []
 
             # Lógica 1: riesgo alto continuado
-            fechas_alto = df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'].sort_values().reset_index(drop=True)
+            fechas_alto = pd.to_datetime(df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha']).sort_values().reset_index(drop=True)
             grupo = []
             for i in range(len(fechas_alto)):
                 if not grupo:
@@ -178,7 +178,7 @@ if lat and lon:
 
 
             df['fecha'] = pd.to_datetime(df['fecha'])
-            fechas_alto = df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'].sort_values().reset_index(drop=True)
+            fechas_alto = pd.to_datetime(df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha']).sort_values().reset_index(drop=True)
 
             brotes = []
             grupo = []
