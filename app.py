@@ -4,8 +4,6 @@ import pandas as pd
 import requests
 from datetime import date, timedelta
 from opencage.geocoder import OpenCageGeocode
-import folium
-from streamlit_folium import st_folium
 
 # ---------------------- CONFIGURACIÓN INICIAL ---------------------- #
 
@@ -73,9 +71,6 @@ if lat and lon:
     st.write(f"Lat: {lat:.4f}, Lon: {lon:.4f}")
 
     with st.container():
-        m = folium.Map(location=[lat, lon], zoom_start=12)
-        folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
-        st_folium(m, width=700, height=250)
 
         dias = st.slider("📆 Días atrás a considerar", 1, 14, 7)
         prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
