@@ -104,6 +104,10 @@ if lat and lon:
             df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
 
             # 🟢 Marcar fechas tratadas en el DataFrame
+            
+            if "tratamientos_confirmados" not in st.session_state:
+                st.session_state.tratamientos_confirmados = []
+
             df['tratamiento_aplicado'] = df['fecha'].apply(lambda x: '✅' if pd.to_datetime(x).strftime('%Y-%m-%d') in st.session_state.tratamientos_confirmados else '')
 
             # 📊 Resultados del análisis
@@ -264,6 +268,10 @@ if lat and lon:
                     df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
 
             # 🟢 Marcar fechas tratadas en el DataFrame
+            
+            if "tratamientos_confirmados" not in st.session_state:
+                st.session_state.tratamientos_confirmados = []
+
             df['tratamiento_aplicado'] = df['fecha'].apply(lambda x: '✅' if pd.to_datetime(x).strftime('%Y-%m-%d') in st.session_state.tratamientos_confirmados else '')
 
 
