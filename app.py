@@ -1,17 +1,11 @@
 
 import streamlit as st
-
-# 🔁 Reinicio seguro si marcado desde sesión
-if "forzar_rerun" in st.session_state and st.session_state["forzar_rerun"]:
-    st.session_state["forzar_rerun"] = False
-    st.stop()
-    st.experimental_rerun()
 import pandas as pd
 
 # 🔁 Reinicio seguro tras botón de tratamiento
 if st.session_state.get("forzar_rerun", False):
     st.session_state["forzar_rerun"] = False
-    st.experimental_rerun()
+    st.success("✅ Tratamiento registrado. Vuelve a pulsar \"Analizar riesgo\" para actualizar los datos.")
 
 import requests
 from datetime import date, timedelta
@@ -92,7 +86,7 @@ if lat and lon:
 if not st.session_state.get("analisis_realizado", False):
     if st.button("🔍 Analizar riesgo"):
         st.session_state.analisis_realizado = True
-        st.experimental_rerun()
+        st.success("✅ Tratamiento registrado. Vuelve a pulsar \"Analizar riesgo\" para actualizar los datos.")
 if st.session_state.get("analisis_realizado", False):
 
         fecha_hoy = date.today()
@@ -323,7 +317,7 @@ if st.session_state.get("analisis_realizado", False):
                         if st.button(f"✅ Tratado {fecha_str}"):
                             if fecha_str not in st.session_state.tratamientos_confirmados:
                                 st.session_state.tratamientos_confirmados.append(fecha_str)
-                                st.experimental_rerun()
+                                st.success("✅ Tratamiento registrado. Vuelve a pulsar \"Analizar riesgo\" para actualizar los datos.")
 
             # 🔁 Ajustar riesgo tras tratamiento
             if st.session_state.tratamientos_confirmados:
