@@ -76,7 +76,13 @@ if lat and lon:
         prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
 
     st.markdown("## 🔬 Análisis meteorológico y riesgo de mildiu")
-    if st.session_state.get("analisis_realizado", False):
+    
+if not st.session_state.get("analisis_realizado", False):
+    if st.button("🔍 Analizar riesgo"):
+        st.session_state.analisis_realizado = True
+        st.experimental_rerun()
+if st.session_state.get("analisis_realizado", False):
+
         fecha_hoy = date.today()
         fecha_inicio = fecha_hoy - timedelta(days=dias)
         fecha_fin = fecha_hoy + timedelta(days=3) if prediccion else fecha_hoy
