@@ -1,11 +1,11 @@
 
 import streamlit as st
 
-# 🔁 Reinicio seguro si el usuario ha marcado un tratamiento
+# 🔁 Reinicio seguro si marcado desde sesión
 if "forzar_rerun" in st.session_state and st.session_state["forzar_rerun"]:
     st.session_state["forzar_rerun"] = False
+    st.stop()
     st.experimental_rerun()
-
 import pandas as pd
 
 # 🔁 Reinicio seguro tras botón de tratamiento
