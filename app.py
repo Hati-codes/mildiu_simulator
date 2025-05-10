@@ -355,38 +355,30 @@ No constituyen asesoramiento técnico oficial y pueden no reflejar con precisió
 Se recomienda contrastar con la observación en campo y consultar a técnicos agrícolas cuando sea necesario.")
 
 
-# 📌 Pie de página fijo con logo y enlace a Instagram
-import base64
-from pathlib import Path
-
-logo_path = Path("/mnt/data/LOGO ROJO POSITIVO.png")
-if logo_path.exists():
-    with open(logo_path, "rb") as f:
-        data = f.read()
-        encoded = base64.b64encode(data).decode()
-        st.markdown(
-            """
-            <style>
-            .footer-rodamon {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                width: 100%;
-                background-color: white;
-                padding: 10px 0;
-                text-align: center;
-                box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-                z-index: 100;
-            }
-            </style>
-            <div class="footer-rodamon">
-                <img src='data:image/png;base64,""" + encoded + """' width='150'/>
-                <p style='margin-top: 0.5em; font-size: 14px;'>
-                    <a href='https://www.instagram.com/rodamon.wines/' target='_blank' style='text-decoration: none; color: #8B0000; font-weight: bold;'>
-                        Visita Rodamón Wines en Instagram
-                    </a>
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+# 📌 Pie de página fijo con logo cargado desde raíz del repositorio
+st.markdown(
+    """
+    <style>
+    .footer-rodamon {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: white;
+        padding: 10px 0;
+        text-align: center;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        z-index: 100;
+    }
+    </style>
+    <div class="footer-rodamon">
+        <img src='logo_rodamon.png' width='150'/>
+        <p style='margin-top: 0.5em; font-size: 14px;'>
+            <a href='https://www.instagram.com/rodamon.wines/' target='_blank' style='text-decoration: none; color: #8B0000; font-weight: bold;'>
+                Visita Rodamón Wines en Instagram
+            </a>
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
