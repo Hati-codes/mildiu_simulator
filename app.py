@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import requests
@@ -44,39 +45,41 @@ def interpretar_riesgo(row):
     else:
         return "🌞 Condiciones secas o frías: riesgo muy bajo de infección."
 
-# ---------------------- FORMULARIO UBICACIÓN ---------------------- #
+# ---------------------- UBICACIÓN ---------------------- #
 
 API_KEY = "5974c1978f29424299346fd76e0378bd"
 geocoder = OpenCageGeocode(API_KEY)
 
-address = st.text_input("📍 Introduce la dirección o localidad del viñedo:")
-search = st.button("🔍 Buscar ubicación")
+if "lat" not in st.session_state:
+    st.session_state.lat = None
+    st.session_state.lon = None
+    st.session_state.address_str = ""
 
-lat, lon = None, None
+address = st.text_input("📍 Introduce la dirección o localidad del viñedo:", value=st.session_state.address_str)
+buscar = st.button("🔍 Buscar ubicación")
 
-if search and address:
+if buscar and address:
     results = geocoder.geocode(address)
-
     if results and len(results):
         result = results[0]
-        lat = result["geometry"]["lat"]
-        lon = result["geometry"]["lng"]
-        full_address = result["formatted"]
+        st.session_state.lat = result["geometry"]["lat"]
+        st.session_state.lon = result["geometry"]["lng"]
+        st.session_state.address_str = result["formatted"]
 
-        st.success(f"Ubicación: {full_address}")
-        st.write(f"Lat: {lat:.4f}, Lon: {lon:.4f}")
-
-        with st.container():
-            m = folium.Map(location=[lat, lon], zoom_start=12)
-            folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
-            st_folium(m, width=700, height=250)
-
-            dias = st.slider("📆 Días atrás a considerar", 1, 14, 7)
-            prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
-
-# ---------------------- SIMULACIÓN ---------------------- #
+lat, lon = st.session_state.lat, st.session_state.lon
 
 if lat and lon:
+    st.success(f"Ubicación: {st.session_state.address_str}")
+    st.write(f"Lat: {lat:.4f}, Lon: {lon:.4f}")
+
+    with st.container():
+        m = folium.Map(location=[lat, lon], zoom_start=12)
+        folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
+        st_folium(m, width=700, height=250)
+
+        dias = st.slider("📆 Días atrás a considerar", 1, 14, 7)
+        prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
+
     st.markdown("## 🔬 Análisis meteorológico y riesgo de mildiu")
     if st.button("🔍 Analizar riesgo"):
         fecha_hoy = date.today()
