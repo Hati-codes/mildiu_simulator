@@ -106,11 +106,13 @@ if lat and lon:
             df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
 
             df['fecha'] = pd.to_datetime(df['fecha'])
+            
+            # 🚨 Detección de brote por condiciones críticas
+            brotes_detectados = []
+
+            # Lógica 1: riesgo alto acumulado (consecutivo)
             fechas_alto = df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'].sort_values().reset_index(drop=True)
-
-            brotes = []
             grupo = []
-
             for i in range(len(fechas_alto)):
                 if not grupo:
                     grupo.append(fechas_alto[i])
@@ -118,71 +120,30 @@ if lat and lon:
                     grupo.append(fechas_alto[i])
                 else:
                     if len(grupo) >= 3:
-                        brotes.append((grupo[0], grupo[-1]))
+                        brotes_detectados.append((grupo[0], grupo[-1], "Riesgo ALTO continuado"))
                     grupo = [fechas_alto[i]]
-
             if len(grupo) >= 3:
-                brotes.append((grupo[0], grupo[-1]))
+                brotes_detectados.append((grupo[0], grupo[-1], "Riesgo ALTO continuado"))
 
-            st.markdown("### 📊 Resultados del análisis")
-
-            # 🧠 Resumen inteligente del riesgo
-            riesgo_counts = df['riesgo_mildiu'].value_counts()
-            total_dias = len(df)
-            resumen = []
-
-            if 'Riesgo ALTO' in riesgo_counts:
-                resumen.append(f"{riesgo_counts['Riesgo ALTO']} días con riesgo alto")
-            if 'Riesgo MEDIO' in riesgo_counts:
-                resumen.append(f"{riesgo_counts['Riesgo MEDIO']} días con riesgo medio")
-            if 'Riesgo BAJO' in riesgo_counts:
-                resumen.append(f"{riesgo_counts['Riesgo BAJO']} días con riesgo bajo")
-
-            resumen_texto = ", ".join(resumen)
-            st.markdown(f"### 🧾 Resumen del período analizado")
-            st.success(f"En los últimos {total_dias} días: {resumen_texto}.")
-
-            st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
-                             'riesgo_mildiu', 'interpretacion']], use_container_width=True)
-
-            df['riesgo_valor'] = df['riesgo_mildiu'].map({
-                'Riesgo BAJO': 0,
-                'Riesgo MEDIO': 1,
-                'Riesgo ALTO': 2
-            })
-            st.line_chart(df.set_index('fecha')['riesgo_valor'])
-
-            if len(df) >= 3:
-                tendencia = df['riesgo_valor'].iloc[-1] - df['riesgo_valor'].iloc[0]
-                if tendencia > 0:
-                    st.info("🔺 Riesgo en aumento en los últimos días.")
-                elif tendencia < 0:
-                    st.info("🔻 Riesgo en descenso en los últimos días.")
-                else:
-                    st.info("⏸️ Riesgo estable.")
-
-            if brotes:
-                st.markdown("### 🧠 Detección de brote potencial")
-                for inicio, fin in brotes:
-                    st.error(f"🚨 Potencial brote entre {inicio.strftime('%d/%m')} y {fin.strftime('%d/%m')}")
-            else:
-                st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
-
-
-            # 🌧️ Nueva detección de brote por doble lluvia fuerte en una semana
-            brotes_lluvia = []
+            # Lógica 2: doble lluvia fuerte en una semana
             for i in range(len(df) - 6):
                 semana = df.iloc[i:i+7]
                 lluvias_fuertes = semana[semana['precipitacion_mm'] >= 10]
                 if len(lluvias_fuertes) >= 2:
                     inicio, fin = semana.iloc[0]['fecha'], semana.iloc[-1]['fecha']
-                    brotes_lluvia.append((inicio, fin))
+                    brotes_detectados.append((inicio, fin, "Doble lluvia intensa"))
 
-            if brotes_lluvia:
-                st.markdown("### 🌧️ Brote detectado por precipitaciones acumuladas")
-                for inicio, fin in brotes_lluvia:
-                    st.warning(f"Brote potencial por lluvias entre {inicio.strftime('%d/%m')} y {fin.strftime('%d/%m')}")
+            # Mostrar todos los brotes unificados
+            if brotes_detectados:
+                st.markdown("### 🚨 Brotes detectados")
+                for inicio, fin, causa in brotes_detectados:
+                    st.error(f"Brote entre {inicio.strftime('%d/%m')} y {fin.strftime('%d/%m')} ({causa})")
+            else:
+                st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
 
+
+
+            
 
             dias_tratamiento = []
             ultimo_tratamiento = None
