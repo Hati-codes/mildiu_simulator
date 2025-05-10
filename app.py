@@ -142,6 +142,23 @@ if lat and lon:
             st.markdown(f"### 🧾 Resumen del período analizado")
             st.success(f"En los últimos {total_dias} días: {resumen_texto}.")
 
+            # 📊 Gráfico multivariable con Plotly
+            st.markdown("### 📈 Evolución de temperatura, lluvia y humedad")
+            df_plot = df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa']].copy()
+            df_plot = df_plot.rename(columns={
+                'temperatura_media': 'Temperatura media (°C)',
+                'precipitacion_mm': 'Precipitación (mm)',
+                'humedad_relativa': 'Humedad relativa (%)'
+            })
+
+            fig = px.line(df_plot, x='fecha', y=df_plot.columns[1:],
+                          labels={'value': 'Valor', 'variable': 'Variable', 'fecha': 'Fecha'},
+                          markers=True)
+
+            fig.update_layout(height=400, legend_title_text='Variable')
+            st.plotly_chart(fig, use_container_width=True)
+
+
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
                              'riesgo_mildiu', 'interpretacion']], use_container_width=True)
 
