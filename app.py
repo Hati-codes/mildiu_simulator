@@ -355,7 +355,7 @@ No constituyen asesoramiento técnico oficial y pueden no reflejar con precisió
 Se recomienda contrastar con la observación en campo y consultar a técnicos agrícolas cuando sea necesario.")
 
 
-# 📌 Pie de página con logo y enlace
+# 📌 Pie de página fijo con logo y enlace a Instagram
 import base64
 from pathlib import Path
 
@@ -366,9 +366,22 @@ if logo_path.exists():
         encoded = base64.b64encode(data).decode()
         st.markdown(
             """
-            <div style='text-align: center; margin-top: 2em;'>
-                <img src='data:image/png;base64,""" + encoded + """' width='200'/>
-                <p style='margin-top: 0.5em;'>
+            <style>
+            .footer-rodamon {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                background-color: white;
+                padding: 10px 0;
+                text-align: center;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+                z-index: 100;
+            }
+            </style>
+            <div class="footer-rodamon">
+                <img src='data:image/png;base64,""" + encoded + """' width='150'/>
+                <p style='margin-top: 0.5em; font-size: 14px;'>
                     <a href='https://www.instagram.com/rodamon.wines/' target='_blank' style='text-decoration: none; color: #8B0000; font-weight: bold;'>
                         Visita Rodamón Wines en Instagram
                     </a>
