@@ -1,29 +1,94 @@
+
 import streamlit as st
 import pandas as pd
+
+# 🔁 Reinicio seguro tras botón de tratamiento
+if st.session_state.get("forzar_rerun", False):
+    st.session_state["forzar_rerun"] = False
+    st.success("✅ Tratamiento registrado. Vuelve a pulsar \"Analizar riesgo\" para actualizar los datos.")
+
 import requests
 from datetime import date, timedelta
+from opencage.geocoder import OpenCageGeocode
+
+# ---------------------- CONFIGURACIÓN INICIAL ---------------------- #
 
 st.set_page_config(page_title="Simulador de Mildiu", layout="centered")
-st.title("Simulador de Riesgo de Mildiu en Viñedo")
+st.markdown("<h1 style='text-align:center;'>🌿 Simulador de Riesgo de Mildiu</h1>", unsafe_allow_html=True)
 
 st.markdown("""
 Este simulador detecta condiciones favorables para infecciones primarias de Mildiu basadas en la **Regla del 10-10-24**:
 - Temperatura media ≥ 10 °C
 - Precipitaciones ≥ 10 mm
 - Humedad relativa ≥ 90%
-
-Ahora puedes obtener datos directamente desde Open-Meteo introduciendo la latitud y longitud de tu viñedo.
 """)
 
-opcion = st.radio("Selecciona la fuente de datos:", ["Subir CSV", "Usar Open-Meteo"], horizontal=True)
+# ---------------------- FUNCIONES ---------------------- #
 
-if opcion == "Usar Open-Meteo":
-    lat = st.number_input("Latitud del viñedo", value=41.97, format="%f")
-    lon = st.number_input("Longitud del viñedo", value=3.13, format="%f")
-    dias = st.slider("Días atrás para analizar", 1, 14, 7)
-    prediccion = st.checkbox("Incluir predicción para los próximos 3 días")
+def evaluar_riesgo(row):
+    if (row['temperatura_media'] >= 10 and
+        row['precipitacion_mm'] >= 10 and
+        row['humedad_relativa'] >= 90):
+        return "Riesgo ALTO"
+    elif (row['temperatura_media'] >= 10 and row['precipitacion_mm'] >= 5):
+        return "Riesgo MEDIO"
+    else:
+        return "Riesgo BAJO"
 
-    if st.button("Obtener datos y analizar"):
+def interpretar_riesgo(row):
+    if row['riesgo_mildiu'] == "Riesgo ALTO":
+        if row['precipitacion_mm'] >= 15 and row['humedad_relativa'] >= 95:
+            return "🌧️ Lluvias intensas y humedad extrema: condiciones críticas para brote."
+        else:
+            return "🌦️ Se cumplen los criterios clave para infección primaria de mildiu."
+    elif row['riesgo_mildiu'] == "Riesgo MEDIO":
+        if row['precipitacion_mm'] >= 5:
+            return "💧 Humedad y temperatura favorables, pero lluvia no alcanza umbral alto."
+        else:
+            return "🌤️ Temperatura adecuada, pero condiciones aún no son óptimas para brote."
+    else:
+        return "🌞 Condiciones secas o frías: riesgo muy bajo de infección."
+
+# ---------------------- UBICACIÓN ---------------------- #
+
+API_KEY = "5974c1978f29424299346fd76e0378bd"
+geocoder = OpenCageGeocode(API_KEY)
+
+if "lat" not in st.session_state:
+    st.session_state.lat = None
+    st.session_state.lon = None
+    st.session_state.address_str = ""
+
+address = st.text_input("📍 Introduce la dirección o localidad del viñedo:", value=st.session_state.address_str)
+buscar = st.button("🔍 Buscar ubicación")
+
+if buscar and address:
+    results = geocoder.geocode(address)
+    if results and len(results):
+        result = results[0]
+        st.session_state.lat = result["geometry"]["lat"]
+        st.session_state.lon = result["geometry"]["lng"]
+        st.session_state.address_str = result["formatted"]
+
+lat, lon = st.session_state.lat, st.session_state.lon
+
+if lat and lon:
+    st.success(f"Ubicación: {st.session_state.address_str}")
+    st.write(f"Lat: {lat:.4f}, Lon: {lon:.4f}")
+
+    with st.container():
+
+        dias = st.slider("📆 Días atrás a considerar", 1, 14, 7)
+        prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
+
+    st.markdown("## 🔬 Análisis meteorológico y riesgo de mildiu")
+    
+if not st.session_state.get("analisis_realizado", False):
+    if st.button("🔍 Analizar riesgo"):
+        st.session_state.analisis_realizado = True
+        st.success("✅ Tratamiento registrado. Vuelve a pulsar \"Analizar riesgo\" para actualizar los datos.")
+if st.session_state.get("analisis_realizado", False):
+
         fecha_hoy = date.today()
         fecha_inicio = fecha_hoy - timedelta(days=dias)
         fecha_fin = fecha_hoy + timedelta(days=3) if prediccion else fecha_hoy
@@ -47,80 +112,263 @@ if opcion == "Usar Open-Meteo":
                 'humedad_relativa': data['relative_humidity_2m_max']
             })
 
-            def evaluar_riesgo(row):
-                if (row['temperatura_media'] >= 10 and
-                    row['precipitacion_mm'] >= 10 and
-                    row['humedad_relativa'] >= 90):
-                    return "Riesgo ALTO"
-                elif (row['temperatura_media'] >= 10 and row['precipitacion_mm'] >= 5):
-                    return "Riesgo MEDIO"
-                else:
-                    return "Riesgo BAJO"
-
             df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
+            df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
 
-            st.subheader("Resultados del análisis")
-            st.dataframe(df)
+            # 🟢 Marcar fechas tratadas en el DataFrame
+            
+            if "tratamientos_confirmados" not in st.session_state:
+                st.session_state.tratamientos_confirmados = []
 
-            dias_alerta = df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'].tolist()
-            if dias_alerta:
-                st.warning(f"⚠️ Riesgo ALTO de Mildiu detectado en las siguientes fechas: {', '.join(dias_alerta)}")
+            df['tratamiento_aplicado'] = df['fecha'].apply(lambda x: '✅' if pd.to_datetime(x).strftime('%Y-%m-%d') in st.session_state.tratamientos_confirmados else '')
+
+            # 📊 Resultados del análisis
+            st.markdown("### 📊 Resultados del análisis")
+            # ✅ Aseguramos que existan las columnas necesarias antes de mostrar la tabla
+            if 'tratamiento_aplicado' not in df.columns:
+                df['tratamiento_aplicado'] = ''
+            if 'tratamiento_sugerido' not in df.columns:
+                df['tratamiento_sugerido'] = ''
+            st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
+                             'riesgo_mildiu', 'interpretacion', 'tratamiento_aplicado', 'tratamiento_sugerido']], use_container_width=True)
+
+            # 🧠 Resumen inteligente del riesgo
+            riesgo_counts = df['riesgo_mildiu'].value_counts()
+            total_dias = len(df)
+            resumen = []
+
+            if 'Riesgo ALTO' in riesgo_counts:
+                resumen.append(f"{riesgo_counts['Riesgo ALTO']} días con riesgo alto")
+            if 'Riesgo MEDIO' in riesgo_counts:
+                resumen.append(f"{riesgo_counts['Riesgo MEDIO']} días con riesgo medio")
+            if 'Riesgo BAJO' in riesgo_counts:
+                resumen.append(f"{riesgo_counts['Riesgo BAJO']} días con riesgo bajo")
+
+            resumen_texto = ", ".join(resumen)
+            st.markdown(f"### 🧾 Resumen del período analizado")
+            st.success(f"En los últimos {total_dias} días: {resumen_texto}.")
+
+            # 📈 Gráfico multivariable
+            import plotly.express as px
+            df_plot = df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa']].copy()
+            df_plot = df_plot.rename(columns={
+                'temperatura_media': 'Temperatura media (°C)',
+                'precipitacion_mm': 'Precipitación (mm)',
+                'humedad_relativa': 'Humedad relativa (%)'
+            })
+
+            fig = px.line(df_plot, x='fecha', y=df_plot.columns[1:],
+                          labels={'value': 'Valor', 'variable': 'Variable', 'fecha': 'Fecha'},
+                          markers=True)
+            fig.update_layout(height=400, legend_title_text='Variable')
+            st.plotly_chart(fig, use_container_width=True)
+
+            # 🚨 Brote unificado
+            brotes_detectados = []
+
+            # Lógica 1: riesgo alto continuado
+            fechas_alto = pd.to_datetime(df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha']).sort_values().reset_index(drop=True)
+            grupo = []
+            for i in range(len(fechas_alto)):
+                if not grupo:
+                    grupo.append(fechas_alto[i])
+                elif (fechas_alto[i] - grupo[-1]).days <= 1:
+                    grupo.append(fechas_alto[i])
+                else:
+                    if len(grupo) >= 3:
+                        brotes_detectados.append((grupo[0], grupo[-1], "Riesgo ALTO continuado"))
+                    grupo = [fechas_alto[i]]
+            if len(grupo) >= 3:
+                brotes_detectados.append((grupo[0], grupo[-1], "Riesgo ALTO continuado"))
+
+            # Lógica 2: doble lluvia fuerte en una semana
+            for i in range(len(df) - 6):
+                semana = df.iloc[i:i+7]
+                lluvias_fuertes = semana[semana['precipitacion_mm'] >= 10]
+                if len(lluvias_fuertes) >= 2:
+                    inicio = pd.to_datetime(semana.iloc[0]['fecha']).to_pydatetime()
+                    fin = pd.to_datetime(semana.iloc[-1]['fecha']).to_pydatetime()
+                    brotes_detectados.append((inicio, fin, "Doble lluvia intensa"))
+
+            if brotes_detectados:
+                st.markdown("### 🚨 Brotes detectados")
+                for inicio, fin, causa in brotes_detectados:
+                    st.error(f"Brote entre {inicio.strftime('%d/%m')} y {fin.strftime('%d/%m')} ({causa})")
             else:
-                st.success("No se detectaron días con riesgo alto de Mildiu.")
+                st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
+
+
+            df['fecha'] = pd.to_datetime(df['fecha'])
+            fechas_alto = pd.to_datetime(df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha']).sort_values().reset_index(drop=True)
+
+            brotes = []
+            grupo = []
+
+            for i in range(len(fechas_alto)):
+                if not grupo:
+                    grupo.append(fechas_alto[i])
+                elif (fechas_alto[i] - grupo[-1]).days <= 1:
+                    grupo.append(fechas_alto[i])
+                else:
+                    if len(grupo) >= 3:
+                        brotes.append((grupo[0], grupo[-1]))
+                    grupo = [fechas_alto[i]]
+
+            if len(grupo) >= 3:
+                brotes.append((grupo[0], grupo[-1]))
+
+            st.markdown("### 📊 Resultados del análisis")
+            # ✅ Aseguramos que existan las columnas necesarias antes de mostrar la tabla
+            if 'tratamiento_aplicado' not in df.columns:
+                df['tratamiento_aplicado'] = ''
+            if 'tratamiento_sugerido' not in df.columns:
+                df['tratamiento_sugerido'] = ''
+            st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
+                             'riesgo_mildiu', 'interpretacion', 'tratamiento_aplicado', 'tratamiento_sugerido']], use_container_width=True)
+
+            df['riesgo_valor'] = df['riesgo_mildiu'].map({
+                'Riesgo BAJO': 0,
+                'Riesgo MEDIO': 1,
+                'Riesgo ALTO': 2
+            })
+            st.line_chart(df.set_index('fecha')['riesgo_valor'])
+
+            if len(df) >= 3:
+                tendencia = df['riesgo_valor'].iloc[-1] - df['riesgo_valor'].iloc[0]
+                if tendencia > 0:
+                    st.info("🔺 Riesgo en aumento en los últimos días.")
+                elif tendencia < 0:
+                    st.info("🔻 Riesgo en descenso en los últimos días.")
+                else:
+                    st.info("⏸️ Riesgo estable.")
+
+            if brotes:
+                st.markdown("### 🧠 Detección de brote potencial")
+                for inicio, fin in brotes:
+                    st.error(f"🚨 Potencial brote entre {inicio.strftime('%d/%m')} y {fin.strftime('%d/%m')}")
+            else:
+                st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
+
+            
+            
+            # 💉 Recomendación de tratamiento fitosanitario (preventivo)
+            if "tratamientos_confirmados" not in st.session_state:
+                st.session_state.tratamientos_confirmados = []
+
+            dias_tratamiento = []
+            ultimo_tratamiento = None
+            for i in range(1, len(df)):
+                dia_anterior = pd.to_datetime(df.loc[i - 1, 'fecha'])
+                dia_actual = pd.to_datetime(df.loc[i, 'fecha'])
+                riesgo = df.loc[i, 'riesgo_mildiu']
+                lluvia = df.loc[i, 'precipitacion_mm']
+
+                if riesgo == 'Riesgo ALTO' or lluvia >= 10:
+                    if (ultimo_tratamiento is None) or ((dia_anterior - ultimo_tratamiento).days >= 10):
+                        dias_tratamiento.append((dia_anterior, 'Prevención antes de brote o lluvia intensa'))
+                        ultimo_tratamiento = dia_anterior
+
+            # 🟢 Marcar en tabla los tratamientos sugeridos
+            if dias_tratamiento:
+                sugeridas = set([f[0].strftime('%Y-%m-%d') for f in dias_tratamiento])
+            else:
+                sugeridas = set()
+            df['tratamiento_sugerido'] = df['fecha'].apply(
+                lambda x: '💧' if pd.to_datetime(x).strftime('%Y-%m-%d') in sugeridas else ''
+            )
+
+            if dias_tratamiento:
+                st.markdown("### 💉 Recomendación de tratamiento fitosanitario")
+                for fecha, motivo in dias_tratamiento:
+                    fecha_str = fecha.strftime('%Y-%m-%d')
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.warning(f"Aplicar caldo bordelés el {fecha.strftime('%d/%m')} ({motivo})")
+                    with col2:
+                        if st.button(f"✅ Tratado {fecha_str}"):
+                            if fecha_str not in st.session_state.tratamientos_confirmados:
+                                st.session_state.tratamientos_confirmados.append(fecha_str)
+                                st.session_state["forzar_rerun"] = True
+
+            if "tratamientos_confirmados" not in st.session_state:
+                st.session_state.tratamientos_confirmados = []
+
+            dias_tratamiento = []
+            ultimo_tratamiento = None
+            for i, row in df.iterrows():
+                fecha_actual = pd.to_datetime(row['fecha'])
+                if row['riesgo_mildiu'] == 'Riesgo ALTO':
+                    if (ultimo_tratamiento is None or (fecha_actual - ultimo_tratamiento).days >= 10):
+                        dias_tratamiento.append((fecha_actual, 'Alta presión de infección'))
+                        ultimo_tratamiento = fecha_actual
+                elif row['precipitacion_mm'] >= 20:
+                    if ultimo_tratamiento and (fecha_actual - ultimo_tratamiento).days >= 1:
+                        dias_tratamiento.append((fecha_actual, 'Lluvia intensa tras tratamiento'))
+                        ultimo_tratamiento = fecha_actual
+
+            if dias_tratamiento:
+                st.markdown("### 💉 Recomendación de tratamiento fitosanitario")
+                for fecha, motivo in dias_tratamiento:
+                    fecha_str = fecha.strftime('%Y-%m-%d')
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.warning(f"Aplicar caldo bordelés el {fecha.strftime('%d/%m')} ({motivo})")
+                    with col2:
+                        if st.button(f"✅ Tratado {fecha_str}"):
+                            if fecha_str not in st.session_state.tratamientos_confirmados:
+                                st.session_state.tratamientos_confirmados.append(fecha_str)
+                                st.success("✅ Tratamiento registrado. Vuelve a pulsar \"Analizar riesgo\" para actualizar los datos.")
+
+            # 🔁 Ajustar riesgo tras tratamiento
+            if st.session_state.tratamientos_confirmados:
+                for fecha_tratada_str in st.session_state.tratamientos_confirmados:
+                    fecha_tratada = pd.to_datetime(fecha_tratada_str)
+                    df.loc[(df['fecha'] > fecha_tratada) & (df['fecha'] <= fecha_tratada + pd.Timedelta(days=7)), 'riesgo_mildiu'] = df['riesgo_mildiu'].replace({
+                        "Riesgo ALTO": "Riesgo MEDIO",
+                        "Riesgo MEDIO": "Riesgo BAJO"
+                    })
+                    df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
+
+            # 🟢 Marcar fechas tratadas en el DataFrame
+            
+            if "tratamientos_confirmados" not in st.session_state:
+                st.session_state.tratamientos_confirmados = []
+
+            df['tratamiento_aplicado'] = df['fecha'].apply(lambda x: '✅' if pd.to_datetime(x).strftime('%Y-%m-%d') in st.session_state.tratamientos_confirmados else '')
+
+
 
             st.download_button(
-                label="Descargar resultados en CSV",
+                label="📥 Descargar resultados en CSV",
                 data=df.to_csv(index=False).encode('utf-8'),
                 file_name='riesgo_mildiu.csv',
                 mime='text/csv'
             )
+else:
+    st.info("Introduce una ubicación válida y pulsa el botón para continuar.")
 
-elif opcion == "Subir CSV":
-    uploaded_file = st.file_uploader("Sube un archivo CSV con los datos meteorológicos", type="csv")
+# 🛑 Disclaimer
+st.markdown("---")
+st.info("ℹ️ **Este simulador ha sido desarrollado por Rodamón Wines.**\n\
+Los resultados presentados son estimaciones basadas en datos meteorológicos aproximados y reglas empíricas.\n\
+No constituyen asesoramiento técnico oficial y pueden no reflejar con precisión la evolución real del mildiu.\n\
+Se recomienda contrastar con la observación en campo y consultar a técnicos agrícolas cuando sea necesario.")
 
-    if uploaded_file:
-        df = pd.read_csv(uploaded_file)
-        st.write("Vista previa de los datos:")
-        st.dataframe(df.head())
 
-        required_columns = {'fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa'}
-
-        if not required_columns.issubset(df.columns):
-            st.error(f"El CSV debe contener las columnas: {', '.join(required_columns)}")
-        else:
-            def evaluar_riesgo(row):
-                if (row['temperatura_media'] >= 10 and
-                    row['precipitacion_mm'] >= 10 and
-                    row['humedad_relativa'] >= 90):
-                    return "Riesgo ALTO"
-                elif (row['temperatura_media'] >= 10 and row['precipitacion_mm'] >= 5):
-                    return "Riesgo MEDIO"
-                else:
-                    return "Riesgo BAJO"
-
-            df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
-
-            st.subheader("Resultados del análisis")
-            st.dataframe(df[['fecha', 'riesgo_mildiu']])
-
-            dias_alerta = df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'].tolist()
-            if dias_alerta:
-                st.warning(f"⚠️ Riesgo ALTO de Mildiu detectado en las siguientes fechas: {', '.join(dias_alerta)}")
-            else:
-                st.success("No se detectaron días con riesgo alto de Mildiu.")
-
-            st.download_button(
-                label="Descargar resultados en CSV",
-                data=df.to_csv(index=False).encode('utf-8'),
-                file_name='riesgo_mildiu.csv',
-                mime='text/csv'
-            )
-    else:
-        st.info("Esperando un archivo CSV con datos meteorológicos. Ejemplo:")
-        ejemplo = pd.DataFrame({
-            'fecha': ['2025-05-01', '2025-05-02'],
-            'temperatura_media': [11.2, 9.5],
-            'precipitacion_mm': [12.0, 3.0],
-            'humedad_relativa': [92, 85]
-        })
-        st.dataframe(ejemplo)
+# 📌 Pie de página con logo cargado vía st.image y texto con enlace
+st.markdown("---")
+st.image(
+    "https://raw.githubusercontent.com/Hati-codes/mildiu_simulator/main/logo_rodamon.png",
+    width=150,
+    caption="Rodamón Wines"
+)
+st.markdown(
+    """
+    <p style='text-align: center;'>
+        <a href='https://www.instagram.com/rodamon.wines/' target='_blank' style='text-decoration: none; color: #8B0000; font-weight: bold;'>
+            Visita Rodamón Wines en Instagram
+        </a>
+    </p>
+    """,
+    unsafe_allow_html=True
+)
