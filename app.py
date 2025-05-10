@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import date, timedelta
+import plotly.express as px
 from opencage.geocoder import OpenCageGeocode
 
 
