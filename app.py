@@ -102,10 +102,14 @@ if lat and lon:
 
             df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
             df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
+
+            # 🟢 Marcar fechas tratadas en el DataFrame
+            df['tratamiento_aplicado'] = df['fecha'].apply(lambda x: '✅' if x.strftime('%Y-%m-%d') in st.session_state.tratamientos_confirmados else '')
+
             # 📊 Resultados del análisis
             st.markdown("### 📊 Resultados del análisis")
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
-                             'riesgo_mildiu', 'interpretacion']], use_container_width=True)
+                             'riesgo_mildiu', 'interpretacion', 'tratamiento_aplicado']], use_container_width=True)
 
             # 🧠 Resumen inteligente del riesgo
             riesgo_counts = df['riesgo_mildiu'].value_counts()
@@ -194,7 +198,7 @@ if lat and lon:
 
             st.markdown("### 📊 Resultados del análisis")
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
-                             'riesgo_mildiu', 'interpretacion']], use_container_width=True)
+                             'riesgo_mildiu', 'interpretacion', 'tratamiento_aplicado']], use_container_width=True)
 
             df['riesgo_valor'] = df['riesgo_mildiu'].map({
                 'Riesgo BAJO': 0,
@@ -219,6 +223,11 @@ if lat and lon:
             else:
                 st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
 
+            
+            # 💉 Recomendación de tratamiento fitosanitario (interactivo)
+            if "tratamientos_confirmados" not in st.session_state:
+                st.session_state.tratamientos_confirmados = []
+
             dias_tratamiento = []
             ultimo_tratamiento = None
             for i, row in df.iterrows():
@@ -235,7 +244,29 @@ if lat and lon:
             if dias_tratamiento:
                 st.markdown("### 💉 Recomendación de tratamiento fitosanitario")
                 for fecha, motivo in dias_tratamiento:
-                    st.warning(f"Se recomienda aplicar caldo bordelés el {fecha.strftime('%d/%m')} ({motivo})")
+                    fecha_str = fecha.strftime('%Y-%m-%d')
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.warning(f"Aplicar caldo bordelés el {fecha.strftime('%d/%m')} ({motivo})")
+                    with col2:
+                        if st.button(f"✅ Tratado {fecha_str}"):
+                            if fecha_str not in st.session_state.tratamientos_confirmados:
+                                st.session_state.tratamientos_confirmados.append(fecha_str)
+
+            # 🔁 Ajustar riesgo tras tratamiento
+            if st.session_state.tratamientos_confirmados:
+                for fecha_tratada_str in st.session_state.tratamientos_confirmados:
+                    fecha_tratada = pd.to_datetime(fecha_tratada_str)
+                    df.loc[(df['fecha'] > fecha_tratada) & (df['fecha'] <= fecha_tratada + pd.Timedelta(days=7)), 'riesgo_mildiu'] = df['riesgo_mildiu'].replace({
+                        "Riesgo ALTO": "Riesgo MEDIO",
+                        "Riesgo MEDIO": "Riesgo BAJO"
+                    })
+                    df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
+
+            # 🟢 Marcar fechas tratadas en el DataFrame
+            df['tratamiento_aplicado'] = df['fecha'].apply(lambda x: '✅' if x.strftime('%Y-%m-%d') in st.session_state.tratamientos_confirmados else '')
+
+
 
             st.download_button(
                 label="📥 Descargar resultados en CSV",
