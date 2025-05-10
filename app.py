@@ -44,16 +44,18 @@ def interpretar_riesgo(row):
     else:
         return "🌞 Condiciones secas o frías: riesgo muy bajo de infección."
 
-# ---------------------- LOCALIZACIÓN ---------------------- #
+# ---------------------- FORMULARIO UBICACIÓN ---------------------- #
 
 API_KEY = "5974c1978f29424299346fd76e0378bd"
 geocoder = OpenCageGeocode(API_KEY)
 
-address = st.sidebar.text_input("📍 Introduce la dirección o localidad del viñedo:")
+with st.form("ubicacion_formulario"):
+    address = st.text_input("📍 Introduce la dirección o localidad del viñedo:")
+    submitted = st.form_submit_button("🔍 Buscar ubicación")
 
 lat, lon = None, None
 
-if address:
+if submitted and address:
     results = geocoder.geocode(address)
 
     if results and len(results):
@@ -69,9 +71,9 @@ if address:
             m = folium.Map(location=[lat, lon], zoom_start=12)
             folium.Marker([lat, lon], tooltip="Ubicación del viñedo").add_to(m)
             st_folium(m, width=700, height=250)
+
             dias = st.slider("📆 Días atrás a considerar", 1, 14, 7)
             prediccion = st.checkbox("📈 Incluir predicción para los próximos 3 días")
-
 
 # ---------------------- SIMULACIÓN ---------------------- #
 
@@ -104,7 +106,6 @@ if lat and lon:
             df['riesgo_mildiu'] = df.apply(evaluar_riesgo, axis=1)
             df['interpretacion'] = df.apply(interpretar_riesgo, axis=1)
 
-            # Simulación avanzada de brote
             df['fecha'] = pd.to_datetime(df['fecha'])
             fechas_alto = df[df['riesgo_mildiu'] == "Riesgo ALTO"]['fecha'].sort_values().reset_index(drop=True)
 
@@ -128,7 +129,6 @@ if lat and lon:
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
                              'riesgo_mildiu', 'interpretacion']], use_container_width=True)
 
-            # 📈 Gráfico de evolución del riesgo
             df['riesgo_valor'] = df['riesgo_mildiu'].map({
                 'Riesgo BAJO': 0,
                 'Riesgo MEDIO': 1,
@@ -136,7 +136,6 @@ if lat and lon:
             })
             st.line_chart(df.set_index('fecha')['riesgo_valor'])
 
-            # 🔁 Tendencia
             if len(df) >= 3:
                 tendencia = df['riesgo_valor'].iloc[-1] - df['riesgo_valor'].iloc[0]
                 if tendencia > 0:
@@ -153,7 +152,6 @@ if lat and lon:
             else:
                 st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
 
-            # 💉 Recomendación de tratamiento
             dias_tratamiento = []
             ultimo_tratamiento = None
             for i, row in df.iterrows():
@@ -179,4 +177,4 @@ if lat and lon:
                 mime='text/csv'
             )
 else:
-    st.info("Introduce una ubicación válida para comenzar.")
+    st.info("Introduce una ubicación válida y pulsa el botón para continuar.")
