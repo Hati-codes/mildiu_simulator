@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import date, timedelta
-import plotly.express as px
 from opencage.geocoder import OpenCageGeocode
 
 
@@ -143,23 +142,6 @@ if lat and lon:
             st.markdown(f"### 🧾 Resumen del período analizado")
             st.success(f"En los últimos {total_dias} días: {resumen_texto}.")
 
-            # 📊 Gráfico multivariable con Plotly
-            st.markdown("### 📈 Evolución de temperatura, lluvia y humedad")
-            df_plot = df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa']].copy()
-            df_plot = df_plot.rename(columns={
-                'temperatura_media': 'Temperatura media (°C)',
-                'precipitacion_mm': 'Precipitación (mm)',
-                'humedad_relativa': 'Humedad relativa (%)'
-            })
-
-            fig = px.line(df_plot, x='fecha', y=df_plot.columns[1:],
-                          labels={'value': 'Valor', 'variable': 'Variable', 'fecha': 'Fecha'},
-                          markers=True)
-
-            fig.update_layout(height=400, legend_title_text='Variable')
-            st.plotly_chart(fig, use_container_width=True)
-
-
             st.dataframe(df[['fecha', 'temperatura_media', 'precipitacion_mm', 'humedad_relativa',
                              'riesgo_mildiu', 'interpretacion']], use_container_width=True)
 
@@ -185,6 +167,22 @@ if lat and lon:
                     st.error(f"🚨 Potencial brote entre {inicio.strftime('%d/%m')} y {fin.strftime('%d/%m')}")
             else:
                 st.info("✅ No se detectaron acumulaciones de riesgo crítico que sugieran un brote.")
+
+
+            # 🌧️ Nueva detección de brote por doble lluvia fuerte en una semana
+            brotes_lluvia = []
+            for i in range(len(df) - 6):
+                semana = df.iloc[i:i+7]
+                lluvias_fuertes = semana[semana['precipitacion_mm'] >= 10]
+                if len(lluvias_fuertes) >= 2:
+                    inicio, fin = semana.iloc[0]['fecha'], semana.iloc[-1]['fecha']
+                    brotes_lluvia.append((inicio, fin))
+
+            if brotes_lluvia:
+                st.markdown("### 🌧️ Brote detectado por precipitaciones acumuladas")
+                for inicio, fin in brotes_lluvia:
+                    st.warning(f"Brote potencial por lluvias entre {inicio.strftime('%d/%m')} y {fin.strftime('%d/%m')}")
+
 
             dias_tratamiento = []
             ultimo_tratamiento = None
