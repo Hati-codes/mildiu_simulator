@@ -1,6 +1,5 @@
 streamlit
-pandas
 requests
-folium
-streamlit-folium
+pandas
+plotly
 opencage
