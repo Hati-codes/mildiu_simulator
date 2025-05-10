@@ -1,6 +1,12 @@
 
 import streamlit as st
 import pandas as pd
+
+# 🔁 Reinicio seguro tras botón de tratamiento
+if st.session_state.get("forzar_rerun", False):
+    st.session_state["forzar_rerun"] = False
+    st.experimental_rerun()
+
 import requests
 from datetime import date, timedelta
 from opencage.geocoder import OpenCageGeocode
@@ -81,14 +87,7 @@ if not st.session_state.get("analisis_realizado", False):
     if st.button("🔍 Analizar riesgo"):
         st.session_state.analisis_realizado = True
         st.experimental_rerun()
-
-if not st.session_state.get("analisis_realizado", False):
-    if st.button("🔍 Analizar riesgo"):
-        st.session_state.analisis_realizado = True
-        st.experimental_rerun()
-        st.stop()
 if st.session_state.get("analisis_realizado", False):
-
 
         fecha_hoy = date.today()
         fecha_inicio = fecha_hoy - timedelta(days=dias)
